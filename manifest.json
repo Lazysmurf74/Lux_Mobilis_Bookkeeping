@@ -1,0 +1,9 @@
+{
+  "app_version": "1.0.0",
+  "packs": {
+    "pbz":    { "version": "1.0.0", "file": "pbz.py" },
+    "zaba":   { "version": "1.0.0", "file": "zaba.py" },
+    "erste":  { "version": "1.0.0", "file": "erste.py" },
+    "addiko": { "version": "1.0.0", "file": "addiko.py" }
+  }
+}

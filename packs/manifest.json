@@ -15,13 +15,7 @@
       "file": "zaba.py",
       "url": "https://raw.githubusercontent.com/Lazysmurf74/Lux_Mobilis_Bookkeeping/main/packs/zaba.py",
       "sha256": "eb3e5c70d731a47a30c6c6ebc44c57429a5c0e68ba0624a10ffcc0212dc436ad",
-      "changelog": "Here's what was wrong and what changed (v1.0.1):
-Root cause: Strategy 1 was w['text'] == 'IBAN' and w['x0'] > 300 — the owner's IBAN label in the green-highlighted block sits on the left side of the page (x0 ≈ 15–30), so it was never matched. Strategy 2 then scanned the full page text and grabbed the first HR IBAN it found, which was the transaction-line IBAN from the red-circled area.
-Fix — three-tier detection, all anchored to the page header zone (top < 140):
-
-Strategy 1 — looks for the IBAN label word anywhere on the page but only in the header zone (top < 140), so it catches the left-side label correctly and ignores the identical word that might appear in column headers lower down.
-Strategy 2 — scans all words with top < 140 for a bare HR… token (19+ digits), skipping ZABA's own bank prefixes. Stops scanning once it passes y=140 to avoid touching transaction rows.
-Strategy 3 — text-extraction fallback, but now restricted to the first 12 lines of page text only, so transaction-block IBANs are never reached."
+      "changelog": ""
     },
     "erste": {
       "bank_key": "Erste Bank (periodični izvod prometa)",

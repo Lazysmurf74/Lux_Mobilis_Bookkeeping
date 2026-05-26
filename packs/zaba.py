@@ -1,7 +1,12 @@
 """
 Parser Pack: ZABA – Zagrebačka Banka
 Format:      Dnevni izvod (PDF)
-Version:     1.0.1
+Version:     1.0.2
+
+Layout notes (from real PDFs):
+  - Bank's own IBAN:  label 'IBAN:' (with colon) at top≈82,  x0≈42  → SKIP
+  - Owner's IBAN:     label 'IBAN'  (no colon)   at top≈226, x0≈42,
+                      followed immediately by HR... token on same row  → USE THIS
 """
 import re
 from collections import defaultdict
@@ -10,8 +15,7 @@ from pack_utils import parse_amount, to_iso, AMOUNT_RE
 
 BANK_KEY  = 'ZABA – Zagrebačka Banka (dnevni izvod)'
 BANK_TAG  = 'ZABA'
-DETECT_RE = r'Zagrebačka banka|ZABAHR2X|IZVADAK'
-VERSION   = '1.0.1'
+DETECT_RE = r'Zagrebačka banka|ZABAHR|IZVADAK'
 
 _ZABA_SKIP = {'PRETHODNO','STANJE','NOVO','Ukupan','plaćanja:','STANJE:','broj','iznos','plaćanja','(br.'}
 
@@ -30,36 +34,28 @@ def parse(path):
                 if w['text'] == 'Potražuje': credit_x = w['x0']
             split_x = (duguje_x + credit_x) / 2
             if not header.get('iban'):
-                # Strategy 1: find "IBAN" label word in the page header area
-                # (top < 140 covers the green-highlighted IBAN block; avoids
-                # picking up IBANs from transaction rows which start at top > 150).
-                # The label may appear on the left OR right half of the page.
+                # Strategy 1 (precise): find 'IBAN' label WITHOUT a colon
+                # (the bank's own IBAN uses 'IBAN:' with colon — we skip that).
+                # The owner IBAN label sits at x0≈42, top≈226 and is followed
+                # on the same row by the HR... account number.
                 for i, w in enumerate(words):
-                    if w['text'] == 'IBAN' and w['top'] < 140:
-                        for w2 in words[i+1:i+6]:
+                    if w['text'] == 'IBAN' and w['x0'] < 80:
+                        # next word on the same row should be the HR IBAN
+                        for w2 in words[i+1:i+4]:
+                            if abs(w2['top'] - w['top']) > 6:
+                                break  # moved to a different row
                             candidate = re.sub(r'\s+', '', w2['text'])
                             if re.match(r'^HR\d{19,}$', candidate):
-                                header['iban'] = candidate; break
-                        if header.get('iban'): break
+                                header['iban'] = candidate
+                                break
+                        if header.get('iban'):
+                            break
 
-                # Strategy 2: scan words in the header zone only (top < 140)
-                # for a bare HR IBAN token – skips all transaction-line IBANs.
-                if not header.get('iban'):
-                    for w in words:
-                        if w['top'] > 140:
-                            break  # words are roughly top-sorted; stop early
-                        candidate = re.sub(r'\s+', '', w['text'])
-                        if (re.match(r'^HR\d{19,}$', candidate)
-                                and not re.match(r'^HR\d{2}(23[46]0000|2360009)', candidate)):
-                            header['iban'] = candidate; break
-
-                # Strategy 3 (last resort): extract from page text, header lines only,
-                # skipping ZABA's own bank account prefixes.
+                # Strategy 2 (fallback): scan full page text but skip ZABA's
+                # own bank account IBANs (prefix HR..2360000 / HR..2360009).
                 if not header.get('iban'):
                     text = page.extract_text() or ""
-                    # Only look in the first ~10 lines of the page text
-                    header_text = '\n'.join(text.splitlines()[:12])
-                    all_ibans = re.findall(r'HR\d{2}[\d\s]{15,}', header_text)
+                    all_ibans = re.findall(r'HR\d{2}[\d\s]{15,}', text)
                     cleaned = [re.sub(r'\s+', '', x) for x in all_ibans
                                if len(re.sub(r'\s+', '', x)) >= 19]
                     client_ibans = [x for x in cleaned

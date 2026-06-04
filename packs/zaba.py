@@ -1,7 +1,7 @@
 """
 Parser Pack: ZABA – Zagrebačka Banka
 Format:      Dnevni izvod (PDF)
-Version:     1.0.2
+Version:     1.0.3
 
 Layout notes (from real PDFs):
   - Bank's own IBAN:  label 'IBAN:' (with colon) at top≈82,  x0≈42  → SKIP
@@ -100,18 +100,32 @@ def parse(path):
                 for w in row:
                     if re.match(r'^(?:HR|DE|SI|BE|LT)\w{14,}$', w['text']) and w['x0']>150:
                         cp_iban = w['text']; break
-                desc_parts = []; bank_ref = ''
+                desc_parts = []; bank_ref = ''; cp_name_parts = []
+                # cp_name: counterparty name column x0 220-320 (name + address)
+                for w in row:
+                    if 220 < w['x0'] < 320 and w['text'] not in _ZABA_SKIP:
+                        if not re.match(r'^(?:HR|DE|SI|AT|GB|FR|NL|AT)\w{5,}$', w['text']):
+                            if not re.match(r'^HR\d{2}$', w['text']):
+                                cp_name_parts.append(w['text'])
                 for next_rk in sorted_rows[ri+1:ri+6]:
                     nr = sorted(rows[next_rk], key=lambda w: w['x0'])
                     if nr and re.match(r'^\d{1,3}$', nr[0]['text']) and nr[0]['x0']<60: break
                     for w in nr:
+                        # counterparty name: x0 220-320
+                        if 220 < w['x0'] < 320 and w['text'] not in _ZABA_SKIP:
+                            if not re.match(r'^(?:HR|DE|SI|AT|GB|FR|NL)\w{5,}$', w['text']):
+                                if not re.match(r'^HR\d{2}$', w['text']):
+                                    cp_name_parts.append(w['text'])
+                        # description: x0 310-465
                         if w['x0']>310 and w['x0']<465 and w['text'] not in _ZABA_SKIP:
                             if not re.match(r'^HR\d{2}$', w['text']): desc_parts.append(w['text'])
                     if not bank_ref:
                         for w in nr:
                             if w['x0']>65 and w['x0']<155 and len(w['text'])>8: bank_ref=w['text']; break
+                cp_name = ' '.join(cp_name_parts[:6]).strip()[:70]
                 transactions.append({
                     'seq':seq,'cp_iban':cp_iban,'bank_ref':bank_ref,
+                    'cp_name':cp_name,
                     'val_date':book_date,'exec_date':exec_date,
                     'description':' '.join(desc_parts[:8]).strip()[:120],
                     'debit':debit,'credit':credit,

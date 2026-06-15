@@ -11,10 +11,10 @@
     },
     "zaba": {
       "bank_key": "ZABA – Zagrebačka Banka (dnevni izvod)",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "file": "zaba.py",
       "url": "https://raw.githubusercontent.com/Lazysmurf74/Lux_Mobilis_Bookkeeping/main/packs/zaba.py",
-      "sha256": "ec029d94377c458850cac1bc56369739297d1c4d1509412f1ed518e4bd07316d",
+      "sha256": "f0e6d34013231ea3ca190593aae63ed3ffe2e5f4b1abfdd8b73c05451a3ed034",
       "changelog": ""
     },
     "erste": {

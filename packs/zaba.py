@@ -1,7 +1,7 @@
 """
 Parser Pack: ZABA – Zagrebačka Banka
 Format:      Dnevni izvod (PDF)
-Version:     1.0.4
+Version:     1.0.5
 
 Layout notes (from real PDFs):
   - Bank IBAN:  label 'IBAN:' (with colon) at top≈82,  x0≈42  → SKIP
@@ -126,9 +126,17 @@ def parse(path):
 
                 debit = credit = 0.0
                 for w in row:
-                    if AMOUNT_RE.match(w['text']) and w['x0'] > 450:
-                        if w['x0'] < split_x: debit = parse_amount(w['text'])
-                        else: credit = parse_amount(w['text'])
+                    if AMOUNT_RE.match(w["text"]) and w["x0"] > 450:
+                        is_negative = w["text"].startswith("-")
+                        amt = parse_amount(w["text"])
+                        if w["x0"] < split_x:
+                            # Negative debit = reversal → goes to credit side
+                            if is_negative: credit = amt
+                            else: debit = amt
+                        else:
+                            # Negative credit = reversal → goes to debit side
+                            if is_negative: debit = amt
+                            else: credit = amt
 
                 cp_iban = ''
                 for w in row:
@@ -164,11 +172,18 @@ def parse(path):
                                 bank_ref = w['text']; break
 
                 cp_name = ' '.join(cp_name_parts[:6]).strip()[:70]
+
+                # Build description: join all collected parts (120-char limit
+                # keeps it safe). For STORNO rows ZABA appends the original
+                # transaction date (YYYY-MM-DD) at the end of the description
+                # column — we need enough slots to include it, hence [:20].
+                description = ' '.join(desc_parts[:20]).strip()[:120]
+
                 transactions.append({
                     'seq': seq, 'cp_iban': cp_iban, 'bank_ref': bank_ref,
                     'cp_name': cp_name,
                     'val_date': book_date, 'exec_date': exec_date,
-                    'description': ' '.join(desc_parts[:8]).strip()[:120],
+                    'description': description,
                     'debit': debit, 'credit': credit,
                 })
 

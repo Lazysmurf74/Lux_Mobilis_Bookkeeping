@@ -1,7 +1,7 @@
 """
 Parser Pack: PBZ – Privredna Banka Zagreb
 Format:      Mjesečni izvadak (PDF)
-Version:     1.0.0
+Version:     1.0.1
 """
 import re
 from collections import defaultdict
@@ -45,7 +45,7 @@ def parse(path):
                 rows_w[round(w['top'])].append(w)
 
             for m in re.finditer(
-                r'^(\d+)\.\s+((?:HR|DE|SI|BE|LT|AT|GB|FR|NL|PL|CZ|HU)\w+)\s+(\S+)',
+                r'^(\d+)\.\s+([A-Z]{2}\d{2}\w+)\s+(\S+)',
                 text, re.MULTILINE):
                 seq = int(m.group(1))
                 if seq in transactions: continue
@@ -77,7 +77,7 @@ def parse(path):
                 lines = [l.strip() for l in block.split('\n') if l.strip()]
                 desc_parts = []
                 for l in lines[1:]:
-                    if re.match(r'^(HR|DE|SI)\d{2}[\d ]', l): continue
+                    if re.match(r'^[A-Z]{2}\d{2}[\d ]', l): continue
                     if re.match(r'^\d{2}\.\d{2}\.\d{4}', l): continue
                     if re.match(r'^\d{7,}$', l): continue
                     if re.match(r'^(HR99|HR00|HR01|HR05|HR55|HR68|HR67|HR69|HR17)', l): break

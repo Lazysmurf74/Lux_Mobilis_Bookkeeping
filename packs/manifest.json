@@ -3,10 +3,10 @@
   "packs": {
     "pbz": {
       "bank_key": "PBZ – Privredna Banka Zagreb (mjesečni izvadak)",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "file": "pbz.py",
       "url": "https://raw.githubusercontent.com/Lazysmurf74/Lux_Mobilis_Bookkeeping/main/packs/pbz.py",
-      "sha256": "e3d7bd39d6a8733f3f62131f38519d5e0f77763597c6e98ad7d4f0bb94b06be1",
+      "sha256": "f9e00ef563ceca84a7ae0c2b772e11dc9d2b857ec9286c32208ea0288e2ab245",
       "changelog": ""
     },
     "zaba": {

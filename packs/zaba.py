@@ -1,7 +1,7 @@
 """
 Parser Pack: ZABA – Zagrebačka Banka
 Format:      Dnevni izvod (PDF)
-Version:     1.0.5
+Version:     1.0.6
 
 Layout notes (from real PDFs):
   - Bank IBAN:  label 'IBAN:' (with colon) at top≈82,  x0≈42  → SKIP
@@ -96,6 +96,31 @@ def parse(path):
                     if w['text'] in ('J.D.O.O.','D.O.O.','d.o.o.','j.d.o.o.') and w['x0'] > 300:
                         cw = [words[j]['text'] for j in range(max(0,i-6),i+1) if words[j]['x0'] > 300]
                         header['client'] = ' '.join(cw); break
+                                              
+            # Fallback: client has no D.O.O./J.D.O.O. suffix (individual,
+            # obrt, or other entity type). Grab the recipient block that
+            # sits below the MB: line instead — it holds name + address
+            # regardless of legal form.
+                if not header.get('client'):
+                    for w in words:
+                        if w['text'] == 'MB:' and w['x0'] > 300:
+                            mb_top = w['top']
+                            block_rows = defaultdict(list)
+                            for w2 in words:
+                                if 300 < w2['x0'] < 500 and w2['top'] > mb_top + 5:
+                                    block_rows[round(w2['top'])].append(w2['text'])
+                            collected = []
+                            for top in sorted(block_rows.keys()):
+                                line = ' '.join(block_rows[top])
+                                if '(cid:' in line: continue
+                                if re.match(r'^\d{4,}-\w+$', line): continue  # barcode ref code
+                                collected.append(line)
+                                if re.search(r'^\d{5}\b', line): break  # postal code = end of block
+                                if len(collected) >= 5: break
+                            if collected:
+                                header['client'] = ', '.join(collected)[:140]
+                            break
+
                 for w in words:
                     if w['text'] == 'OIB:' and w['x0'] > 300:
                         idx = words.index(w)
